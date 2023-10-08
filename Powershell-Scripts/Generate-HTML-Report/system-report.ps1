@@ -1,46 +1,52 @@
-$webTemplate = "C:\Users\ingra\OneDrive\Documents\GitHub\powershell\System-Report\web-template.html"
-$reportFile = "C:\Users\ingra\OneDrive\Documents\GitHub\powershell\System-Report\system-report-$(Get-Date -format "MM-dd-yyyy").html"
+# Configure directory for template file and report file
+$webTemplate = "C:\temp\powershell\System-Report\web-template.html"
+$reportFile = "C:\temp\powershell\System-Report\system-report-$(Get-Date -format "MM-dd-yyyy").html"
 
+# Create report file.
 copy-item $webTemplate -destination $reportFile
 
+# Get services information
 $services = Get-Service | Sort-Object -Property DisplayName
 $numRunningServices = Get-Service | Where-Object {$_.Status -eq "Running"}
 $numStoppedServices = Get-Service | Where-Object {$_.Status -eq "Stopped"}
 
+# Get processor and memory information
 $processor = Get-ComputerInfo -Property CsProcessors
 $memory = Get-ComputerInfo -Property CsTotalPhysicalMemory
 [int64]$installedMemory = $memory.CsTotalPhysicalMemory
-
 [int]$memoryInGigs = [int64]$installedMemory / 1024 / 1024 / 1024
 
+# Get disk information
 $diskInfo = Get-Disk
 
+# Get running processes information
 $runningProccesses = Get-Process
 
+# Create HTML table rows for services.
 $tableData = ""
-
 $services | ForEach-Object {
     if($_.Status -eq "Stopped") {
-        $tableData = $tableData + '<tr class="table-danger">'
-        $tableData = $tableData + "<td>"
-        $tableData = $tableData + $_.DisplayName
-        $tableData = $tableData + "</td>"
-        $tableData = $tableData + "<td>"
-        $tableData = $tableData + $_.Status
-        $tableData = $tableData + "</td>"
-        $tableData = $tableData + "</tr>"
+        $tableData += '<tr class="table-danger">'
+        $tableData += "<td>"
+        $tableData += $_.DisplayName
+        $tableData += "</td>"
+        $tableData += "<td>"
+        $tableData += $_.Status
+        $tableData += "</td>"
+        $tableData += "</tr>"
     } else {
-        $tableData = $tableData + '<tr class="table-success">'
-        $tableData = $tableData + "<td>"
-        $tableData = $tableData + $_.DisplayName
-        $tableData = $tableData + "</td>"
-        $tableData = $tableData + "<td>"
-        $tableData = $tableData + $_.Status
-        $tableData = $tableData + "</td>"
-        $tableData = $tableData + "</tr>"
+        $tableData += '<tr class="table-success">'
+        $tableData += "<td>"
+        $tableData += $_.DisplayName
+        $tableData += "</td>"
+        $tableData += "<td>"
+        $tableData += $_.Status
+        $tableData += "</td>"
+        $tableData += "</tr>"
     }
 }
 
+# Create HTML table rows for disk data.
 $diskData = ""
 
 $diskInfo | ForEach-Object {
@@ -51,22 +57,23 @@ $diskInfo | ForEach-Object {
     $total_space = $total_space.ToString() + " GB"
 
     
-    $diskData = $diskData + '<tr>'
-    $diskData = $diskData + "<td>"
-    $diskData = $diskData + $_.FriendlyName
-    $diskData = $diskData + "</td>"
-    $diskData = $diskData + "<td>"
-    $diskData = $diskData + $_.HealthStatus
-    $diskData = $diskData + "</td>"
-    $diskData = $diskData + "<td>"
-    $diskData = $diskData + $_.OperationalStatus
-    $diskData = $diskData + "</td>"
-    $diskData = $diskData + "<td>"
-    $diskData = $diskData + $total_space
-    $diskData = $diskData + "</td>"
-    $diskData = $diskData + "</tr>"
+    $diskData += '<tr>'
+    $diskData += "<td>"
+    $diskData += $_.FriendlyName
+    $diskData += "</td>"
+    $diskData += "<td>"
+    $diskData += $_.HealthStatus
+    $diskData += "</td>"
+    $diskData += "<td>"
+    $diskData += $_.OperationalStatus
+    $diskData += "</td>"
+    $diskData += "<td>"
+    $diskData += $total_space
+    $diskData += "</td>"
+    $diskData += "</tr>"
 }
 
+# Write data to template file.
 (Get-Content -path $reportFile -Raw) | ForEach-Object {
     $_.replace( `
         '--date-ran--', "- $(Get-Date)").replace( `
@@ -81,21 +88,5 @@ $diskInfo | ForEach-Object {
     )
  } | Set-Content -Path $reportFile
 
-# ((Get-Content -path $reportFile -Raw) -replace '--date-ran--', "- $(Get-Date)") | Set-Content -Path $reportFile
-
-# ((Get-Content -path $reportFile -Raw) -replace '--running-services--', $numRunningServices.Count) | Set-Content -Path $reportFile
-# ((Get-Content -path $reportFile -Raw) -replace '--stopped-services--', $numStoppedServices.Count) | Set-Content -Path $reportFile
-
-# ((Get-Content -path $reportFile -Raw) -replace '--num-cpu-cores--', $processor.CsProcessors.NumberOfCores) | Set-Content -Path $reportFile
-
-# ((Get-Content -path $reportFile -Raw) -replace '--num-memory--', ([Math]::Round($memoryInGigs + 0.005, 0))) | Set-Content -Path $reportFile
-
-# ((Get-Content -path $reportFile -Raw) -replace '--num-disks--', $diskInfo.Count) | Set-Content -Path $reportFile
-
-# ((Get-Content -path $reportFile -Raw) -replace '--running-proccesses--', $runningProccesses.Count) | Set-Content -Path $reportFile
-
-# ((Get-Content -path $reportFile -Raw) -replace '--table-data--', $tableData) | Set-Content -Path $reportFile
-
-# ((Get-Content -path $reportFile -Raw) -replace '--disk-table-data--', $diskData) | Set-Content -Path $reportFile
-
+ # Notify that the report is ready.
 Write-Host "Reporte generated." -ForegroundColor Green
